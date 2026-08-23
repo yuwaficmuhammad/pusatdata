@@ -22,6 +22,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/attendance/today', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'today']);
             Route::get('/attendance/history', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'history']);
             Route::post('/fcm-token', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'updateFcmToken']);
+            
+            // Leave Requests
+            Route::get('/leave-requests', [\App\Http\Controllers\Api\Mobile\LeaveRequestController::class, 'index']);
+            Route::post('/leave-requests', [\App\Http\Controllers\Api\Mobile\LeaveRequestController::class, 'store']);
         });
         
         // Master Data

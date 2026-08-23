@@ -127,4 +127,13 @@ class AttendanceController extends Controller
         return redirect()->route('attendance.index', ['date' => $attendance->date->format('Y-m-d')])
             ->with('success', 'Data presensi berhasil diperbarui.');
     }
+
+    public function export(Request $request)
+    {
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+
+        $fileName = 'Rekap_Absensi_' . $month . '_' . $year . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\AttendanceExport($month, $year), $fileName);
+    }
 }
