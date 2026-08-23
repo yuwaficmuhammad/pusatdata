@@ -11,8 +11,11 @@ Route::prefix('v1')->group(function () {
     Route::match(['get', 'post'], '/attendance/push', [\App\Http\Controllers\Api\AttendanceController::class, 'push']);
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
+        Route::get('/auth/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
+
+        // Sinkronisasi Manual ADMS (Upload File)
+        Route::post('/attendance/sync-manual', [\App\Http\Controllers\Api\AttendanceController::class, 'syncManual']);
         
         // Master Data
         Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);

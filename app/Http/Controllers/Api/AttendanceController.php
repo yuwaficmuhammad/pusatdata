@@ -49,4 +49,26 @@ class AttendanceController extends Controller
         // Response default jika table bukan ATTLOG (misal OPERLOG)
         return response('OK: 0', 200)->header('Content-Type', 'text/plain');
     }
+
+    /**
+     * Endpoint untuk sinkronisasi manual (Upload File .dat/.txt dari USB Mesin)
+     */
+    public function syncManual(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:txt,dat',
+            'device_sn' => 'nullable|string'
+        ]);
+
+        $file = $request->file('file');
+        $rawBody = file_get_contents($file->getRealPath());
+        $sn = $request->input('device_sn', 'MANUAL_SYNC');
+
+        $count = $this->attendanceService->processAdmsPush($sn, $rawBody);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Berhasil mensinkronisasi {$count} baris data presensi."
+        ]);
+    }
 }
