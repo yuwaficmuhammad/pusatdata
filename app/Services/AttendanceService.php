@@ -9,6 +9,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
+use App\Models\UnknownAttendanceLog;
+
 class AttendanceService
 {
     public function __construct(private ScheduleService $scheduleService)
@@ -39,10 +41,10 @@ class AttendanceService
                 // Kita gunakan logika de-duplikasi harian
                 
                 try {
-                    $this->recordAttendance($deviceSn, $userId, $date, $time);
-                    $savedCount++;
+                    if ($this->recordAttendance($deviceSn, $userId, $date, $time)) {
+                        $savedCount++;
+                    }
                 } catch (\Exception $e) {
-                    dump($e->getMessage());
                     Log::error("Gagal memproses absensi ADMS baris: {$line}. Error: " . $e->getMessage());
                 }
             }
@@ -54,12 +56,18 @@ class AttendanceService
     /**
      * Record single attendance entry.
      */
-    private function recordAttendance(string $deviceSn, string $studentNis, string $date, string $time)
+    private function recordAttendance(string $deviceSn, string $studentNis, string $date, string $time): bool
     {
         // Cari siswa berdasarkan NIS (karena USER_ID di ADMS biasanya = NIS siswa)
         $student = Student::where('nis', $studentNis)->first();
         if (!$student) {
-            return; // Skip jika siswa tidak ditemukan
+            UnknownAttendanceLog::create([
+                'device_sn' => $deviceSn,
+                'nis_scanned' => $studentNis,
+                'date' => $date,
+                'time' => $time,
+            ]);
+            return false; // Skip jika siswa tidak ditemukan
         }
 
         DB::transaction(function () use ($student, $deviceSn, $date, $time) {
@@ -138,11 +146,12 @@ class AttendanceService
             $now = Carbon::now();
             $isTooLate = abs($now->diffInMinutes($eventDateTime)) > 120; // 2 jam toleransi
             
-            if (!empty($student->parent_phone) && !$isTooLate) {
+            if (!$isTooLate) {
                 $statusText = $attendance->status === 'hadir' ? 'Tepat Waktu' : strtoupper($attendance->status);
                 $jenisAbsen = $attendance->time_out ? 'Pulang' : 'Datang';
                 $jamAbsen = $attendance->time_out ? $attendance->time_out : $attendance->time_in;
                 
+                // Pesan untuk WA
                 $message = "Halo Bapak/Ibu Wali dari {$student->name},\n\n";
                 $message .= "Ini adalah notifikasi absensi sekolah:\n";
                 $message .= "- Jenis: {$jenisAbsen}\n";
@@ -155,8 +164,21 @@ class AttendanceService
                 
                 $message .= "\nTerima kasih,\nSistem Pusat Data SMK Salafiyah";
                 
-                \App\Jobs\SendWaNotificationJob::dispatch($student->parent_phone, $message);
+                // Dispatch WA
+                if (!empty($student->parent_phone)) {
+                    \App\Jobs\SendWaNotificationJob::dispatch($student->parent_phone, $message);
+                }
+
+                // Dispatch FCM Android
+                $user = $student->user;
+                if ($user && !empty($user->fcm_token)) {
+                    $fcmTitle = "Notifikasi Presensi {$jenisAbsen}";
+                    $fcmBody = "{$student->name} tap {$jenisAbsen} pada {$jamAbsen}. Status: {$statusText}.";
+                    \App\Jobs\SendFcmNotificationJob::dispatch($user->fcm_token, $fcmTitle, $fcmBody);
+                }
             }
         });
+
+        return true;
     }
 }

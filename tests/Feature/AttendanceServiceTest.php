@@ -71,7 +71,7 @@ class AttendanceServiceTest extends TestCase
         ]);
 
         // Setup Siswa
-        $userStudent = User::create(['name' => 'Student', 'email' => 's@s.com', 'password' => bcrypt('password'), 'role' => 'student']);
+        $userStudent = User::create(['name' => 'Student', 'email' => 's@s.com', 'password' => bcrypt('password'), 'role' => 'student', 'fcm_token' => 'sample_fcm_token']);
         $student = Student::create([
             'user_id' => $userStudent->id,
             'nis' => '1001',
@@ -107,6 +107,7 @@ class AttendanceServiceTest extends TestCase
 
         // Pastikan Job dipanggil
         Queue::assertPushed(SendWaNotificationJob::class);
+        Queue::assertPushed(\App\Jobs\SendFcmNotificationJob::class);
 
         // 2. Uji Tap Keluar (Jam 15:00)
         Carbon::setTestNow(Carbon::parse("{$date} 15:00:05"));
@@ -116,5 +117,23 @@ class AttendanceServiceTest extends TestCase
         $attendance->refresh();
         $this->assertEquals('07:15:00', $attendance->time_in); // Waktu masuk tetap
         $this->assertEquals('15:00:00', $attendance->time_out); // Waktu pulang terisi
+    }
+
+    public function test_process_adms_push_unknown_nis_is_logged()
+    {
+        $date = Carbon::now()->format('Y-m-d');
+        $rawBodyIn = "99999 {$date} 07:15:00 0 1";
+        
+        $savedCount = $this->attendanceService->processAdmsPush('SN123', $rawBodyIn);
+        
+        $this->assertEquals(0, $savedCount); // Data tidak disave ke tabel presensi aktif
+        
+        // Cek bahwa data masuk ke tabel unknown_attendance_logs
+        $this->assertDatabaseHas('unknown_attendance_logs', [
+            'nis_scanned' => '99999',
+            'date' => $date,
+            'time' => '07:15:00',
+            'device_sn' => 'SN123'
+        ]);
     }
 }
