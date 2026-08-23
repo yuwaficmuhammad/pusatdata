@@ -82,9 +82,12 @@ class AttendanceService
                 ->whereDate('date', $date)
                 ->first();
 
+            $newTime = Carbon::parse($date . ' ' . $time);
+            $timeInChanged = false;
+            $jenisAbsen = '';
+
             if (!$attendance) {
                 // TAP PERTAMA (MASUK)
-                
                 // Kalkulasi Keterlambatan
                 $status = 'hadir';
                 $lateMinutes = 0;
@@ -95,14 +98,12 @@ class AttendanceService
                     $scheduleVersionId = $firstSchedule->schedule_version_id;
                     
                     $startTime = Carbon::parse($date . ' ' . $firstSchedule->timeSlot->start_time);
-                    $actualTime = Carbon::parse($date . ' ' . $time);
                     
-                    if ($actualTime->gt($startTime)) {
+                    if ($newTime->gt($startTime)) {
                         $status = 'terlambat';
-                        $lateMinutes = $startTime->diffInMinutes($actualTime);
+                        $lateMinutes = $startTime->diffInMinutes($newTime);
                     }
                 } elseif ($scheduleInfo['is_holiday']) {
-                    // Jika absen di hari libur, kita bisa catat saja tapi mungkin tidak masuk perhitungan.
                     $status = 'hadir';
                 }
 
@@ -120,23 +121,57 @@ class AttendanceService
                 ActivityLog::create([
                     'user_id' => $student->user_id,
                     'action' => 'attendance_in',
-                    'description' => "Siswa tap masuk pada {$time}",
+                    'description' => "Siswa tap masuk pada {$time} (Perangkat: {$deviceSn})",
                     'ip_address' => request()->ip(),
                 ]);
-
+                $jenisAbsen = 'Datang';
             } else {
-                // TAP KEDUA / TERAKHIR (PULANG)
-                // Kita selalu update time_out dengan tap terakhir
-                $attendance->update([
-                    'time_out' => $time,
-                    'device_sn' => $deviceSn,
-                ]);
+                // DATA SUDAH ADA, TANGANI POTENSI MULTI MESIN / OUT OF ORDER
+                $existingTimeIn = Carbon::parse($date . ' ' . $attendance->time_in);
+                $existingTimeOut = $attendance->time_out ? Carbon::parse($date . ' ' . $attendance->time_out) : null;
+                
+                if ($newTime->lt($existingTimeIn)) {
+                    // Tap baru LEBIH AWAL dari time_in saat ini.
+                    // Geser time_in lama ke time_out (jika time_out belum ada atau time_in lama lebih akhir dari time_out)
+                    if (!$existingTimeOut || $existingTimeIn->gt($existingTimeOut)) {
+                        $attendance->time_out = $attendance->time_in;
+                    }
+                    $attendance->time_in = $time;
+                    $attendance->device_sn = $deviceSn;
+                    $timeInChanged = true;
+                    $jenisAbsen = 'Datang';
+                } elseif (!$existingTimeOut || $newTime->gt($existingTimeOut)) {
+                    // Tap baru LEBIH AKHIR dari time_out saat ini (atau time_out belum ada).
+                    $attendance->time_out = $time;
+                    $attendance->device_sn = $deviceSn;
+                    $jenisAbsen = 'Pulang';
+                } else {
+                    // Tap baru berada di antara time_in dan time_out saat ini (duplicate di tengah hari).
+                    // Kita abaikan saja.
+                    return; // exit transaction callback
+                }
+                
+                // Kalkulasi ulang status terlambat jika time_in berubah
+                if ($timeInChanged && !$scheduleInfo['is_holiday'] && count($scheduleInfo['schedules']) > 0) {
+                    $firstSchedule = $scheduleInfo['schedules']->first();
+                    $startTime = Carbon::parse($date . ' ' . $firstSchedule->timeSlot->start_time);
+                    
+                    if ($newTime->gt($startTime)) {
+                        $attendance->status = 'terlambat';
+                        $attendance->late_minutes = $startTime->diffInMinutes($newTime);
+                    } else {
+                        $attendance->status = 'hadir';
+                        $attendance->late_minutes = 0;
+                    }
+                }
+                
+                $attendance->save();
 
                 // Log Activity
                 ActivityLog::create([
                     'user_id' => $student->user_id,
-                    'action' => 'attendance_out',
-                    'description' => "Siswa tap pulang pada {$time}",
+                    'action' => 'attendance_update',
+                    'description' => "Siswa tap {$jenisAbsen} pada {$time} (Perangkat: {$deviceSn})",
                     'ip_address' => request()->ip(),
                 ]);
             }
@@ -148,8 +183,8 @@ class AttendanceService
             
             if (!$isTooLate) {
                 $statusText = $attendance->status === 'hadir' ? 'Tepat Waktu' : strtoupper($attendance->status);
-                $jenisAbsen = $attendance->time_out ? 'Pulang' : 'Datang';
-                $jamAbsen = $attendance->time_out ? $attendance->time_out : $attendance->time_in;
+                // Kita gunakan $jenisAbsen yang sudah ditentukan di blok atas (Datang/Pulang)
+                $jamAbsen = $time;
                 
                 // Pesan untuk WA
                 $message = "Halo Bapak/Ibu Wali dari {$student->name},\n\n";
