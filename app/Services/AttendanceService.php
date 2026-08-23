@@ -93,7 +93,7 @@ class AttendanceService
                 $lateMinutes = 0;
                 $scheduleVersionId = null;
 
-                if (!$scheduleInfo['is_holiday'] && count($scheduleInfo['schedules']) > 0) {
+                if (!$scheduleInfo['is_holiday'] && $scheduleInfo['schedules']->count() > 0) {
                     $firstSchedule = $scheduleInfo['schedules']->first();
                     $scheduleVersionId = $firstSchedule->schedule_version_id;
                     
@@ -152,7 +152,7 @@ class AttendanceService
                 }
                 
                 // Kalkulasi ulang status terlambat jika time_in berubah
-                if ($timeInChanged && !$scheduleInfo['is_holiday'] && count($scheduleInfo['schedules']) > 0) {
+                if ($timeInChanged && !$scheduleInfo['is_holiday'] && $scheduleInfo['schedules']->count() > 0) {
                     $firstSchedule = $scheduleInfo['schedules']->first();
                     $startTime = Carbon::parse($date . ' ' . $firstSchedule->timeSlot->start_time);
                     

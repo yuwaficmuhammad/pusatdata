@@ -8,7 +8,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
 
     // ADMS Webhook Endpoint (Tidak menggunakan Bearer token, auth berbasis SN)
-    Route::match(['get', 'post'], '/attendance/push', [\App\Http\Controllers\Api\AttendanceController::class, 'push']);
+    Route::match(['get', 'post'], '/attendance/push', [\App\Http\Controllers\Api\AttendanceController::class, 'push'])->middleware('throttle:adms');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);

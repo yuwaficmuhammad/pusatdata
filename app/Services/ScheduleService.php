@@ -32,7 +32,7 @@ class ScheduleService
             return [
                 'is_holiday' => true,
                 'holiday_reason' => $holiday->description,
-                'schedules' => []
+                'schedules' => collect([])
             ];
         }
 
@@ -42,7 +42,7 @@ class ScheduleService
             return [
                 'is_holiday' => false,
                 'holiday_reason' => null,
-                'schedules' => [],
+                'schedules' => collect([]),
                 'error' => 'Tidak ada versi jadwal aktif untuk tanggal ini.'
             ];
         }
@@ -56,7 +56,7 @@ class ScheduleService
             return [
                 'is_holiday' => true,
                 'holiday_reason' => 'Hari libur mingguan (Active Day)',
-                'schedules' => []
+                'schedules' => collect([])
             ];
         }
 
