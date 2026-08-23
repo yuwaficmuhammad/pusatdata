@@ -132,7 +132,26 @@ class AttendanceService
                 ]);
             }
             
-            // TODO: Dispatch Fonnte Notification Job di sini
+            // Dispatch Fonnte Notification Job
+            if (!empty($student->parent_phone)) {
+                $statusText = $attendance->status === 'hadir' ? 'Tepat Waktu' : strtoupper($attendance->status);
+                $jenisAbsen = $attendance->time_out ? 'Pulang' : 'Datang';
+                $jamAbsen = $attendance->time_out ? $attendance->time_out : $attendance->time_in;
+                
+                $message = "Halo Bapak/Ibu Wali dari {$student->name},\n\n";
+                $message .= "Ini adalah notifikasi absensi sekolah:\n";
+                $message .= "- Jenis: {$jenisAbsen}\n";
+                $message .= "- Waktu: {$jamAbsen}\n";
+                $message .= "- Status: {$statusText}\n";
+                
+                if ($attendance->status === 'terlambat' && !$attendance->time_out) {
+                    $message .= "- Keterlambatan: {$attendance->late_minutes} Menit\n";
+                }
+                
+                $message .= "\nTerima kasih,\nSistem Pusat Data SMK Salafiyah";
+                
+                \App\Jobs\SendWaNotificationJob::dispatch($student->parent_phone, $message);
+            }
         });
     }
 }
