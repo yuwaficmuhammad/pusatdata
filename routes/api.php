@@ -17,6 +17,12 @@ Route::prefix('v1')->group(function () {
         // Sinkronisasi Manual ADMS (Upload File)
         Route::post('/attendance/sync-manual', [\App\Http\Controllers\Api\AttendanceController::class, 'syncManual']);
         
+        // Mobile App Endpoints
+        Route::prefix('mobile')->group(function () {
+            Route::get('/attendance/history', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'history']);
+            Route::post('/fcm-token', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'updateFcmToken']);
+        });
+        
         // Master Data
         Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
         Route::apiResource('classrooms', \App\Http\Controllers\Api\ClassroomController::class);

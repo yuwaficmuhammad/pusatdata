@@ -27,7 +27,7 @@ class ScheduleService
     public function getTodaySchedule(int $classroomId, string $date)
     {
         // 1. Cek apakah hari libur di Kalender Akademik
-        $holiday = AcademicCalendar::where('date', $date)->where('type', 'holiday')->first();
+        $holiday = AcademicCalendar::whereDate('date', $date)->where('type', 'holiday')->first();
         if ($holiday) {
             return [
                 'is_holiday' => true,

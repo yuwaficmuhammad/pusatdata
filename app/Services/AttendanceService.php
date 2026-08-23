@@ -42,6 +42,7 @@ class AttendanceService
                     $this->recordAttendance($deviceSn, $userId, $date, $time);
                     $savedCount++;
                 } catch (\Exception $e) {
+                    dump($e->getMessage());
                     Log::error("Gagal memproses absensi ADMS baris: {$line}. Error: " . $e->getMessage());
                 }
             }
@@ -70,7 +71,7 @@ class AttendanceService
             $scheduleInfo = $this->scheduleService->getTodaySchedule($classroomId, $date);
             
             $attendance = Attendance::where('student_id', $student->id)
-                ->where('date', $date)
+                ->whereDate('date', $date)
                 ->first();
 
             if (!$attendance) {
@@ -90,7 +91,7 @@ class AttendanceService
                     
                     if ($actualTime->gt($startTime)) {
                         $status = 'terlambat';
-                        $lateMinutes = $actualTime->diffInMinutes($startTime);
+                        $lateMinutes = $startTime->diffInMinutes($actualTime);
                     }
                 } elseif ($scheduleInfo['is_holiday']) {
                     // Jika absen di hari libur, kita bisa catat saja tapi mungkin tidak masuk perhitungan.
