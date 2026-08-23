@@ -8,19 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('schedule_version', function (Blueprint $table) {
+        Schema::create('academic_calendar', function (Blueprint $table) {
             $table->id();
             $table->foreignId('semester_id')->constrained('semester')->onDelete('cascade');
-            $table->string('name', 100); // e.g. "Jadwal Ramadhan"
-            $table->date('valid_from');
-            $table->date('valid_until');
-            $table->boolean('is_active')->default(0)->index();
+            $table->date('date')->unique();
+            $table->enum('type', ['holiday', 'exam', 'activity'])->index();
+            $table->string('description', 255);
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('schedule_version');
+        Schema::dropIfExists('academic_calendar');
     }
 };

@@ -14,5 +14,10 @@ Route::prefix('v1')->group(function () {
         // Master Data
         Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
         Route::apiResource('classrooms', \App\Http\Controllers\Api\ClassroomController::class);
+
+        // Schedule API
+        Route::prefix('schedules')->group(function () {
+            Route::get('/today', [\App\Http\Controllers\Api\ScheduleController::class, 'today']);
+        });
     });
 });

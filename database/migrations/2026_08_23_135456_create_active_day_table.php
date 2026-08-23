@@ -6,22 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('active_days', function (Blueprint $table) {
+        Schema::create('active_day', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('schedule_version_id')->constrained('schedule_version')->onDelete('cascade');
+            $table->tinyInteger('day_of_week'); // 1=Monday ... 7=Sunday
+            $table->boolean('is_holiday')->default(0);
             $table->timestamps();
+            
+            $table->unique(['schedule_version_id', 'day_of_week'], 'idx_active_day_unique');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('active_days');
+        Schema::dropIfExists('active_day');
     }
 };
