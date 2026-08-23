@@ -3,7 +3,11 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('dashboard');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Web\DashboardController::class, 'index'])->name('dashboard');
 });
 
 // Halaman Manajemen Jadwal (Dasar)

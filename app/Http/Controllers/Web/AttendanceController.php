@@ -12,12 +12,25 @@ class AttendanceController extends Controller
 {
     public function index(Request $request)
     {
-        // Parameter Filter
+        $user = $request->user();
+        
         $date = $request->input('date', Carbon::today()->format('Y-m-d'));
         $classroomId = $request->input('classroom_id');
 
-        // Ambil daftar kelas untuk dropdown filter
-        $classrooms = Classroom::orderBy('name')->get();
+        // Jika user wali kelas, paksa classroom_id menjadi ID kelasnya sendiri
+        if ($user && $user->role === 'homeroom_teacher' && $user->teacher) {
+            $classroom = \App\Models\Classroom::where('homeroom_teacher_id', $user->teacher->id)->first();
+            if ($classroom) {
+                $classroomId = $classroom->id;
+                $classrooms = collect([$classroom]); // Hanya tampilkan kelasnya di dropdown
+            } else {
+                $classrooms = collect();
+                $classroomId = -1; // Memastikan tidak ada data yang ditarik
+            }
+        } else {
+            // Ambil daftar kelas untuk dropdown filter admin
+            $classrooms = Classroom::orderBy('name')->get();
+        }
 
         // Query Presensi
         $query = Attendance::with(['student.classrooms'])

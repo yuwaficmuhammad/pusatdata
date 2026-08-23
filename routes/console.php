@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('attendance:mark-alpha')->dailyAt('15:00');
+Schedule::command('attendance:check-sp')->dailyAt('15:30');

@@ -10,11 +10,26 @@ use Carbon\Carbon;
 
 class LeaveRequestController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $requests = LeaveRequest::with(['student.classrooms', 'approver'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $user = $request->user();
+        
+        $query = LeaveRequest::with(['student.classrooms', 'approver'])
+            ->orderBy('created_at', 'desc');
+
+        if ($user && $user->role === 'homeroom_teacher' && $user->teacher) {
+            $classroom = \App\Models\Classroom::where('homeroom_teacher_id', $user->teacher->id)->first();
+            if ($classroom) {
+                $query->whereHas('student.classrooms', function($q) use ($classroom) {
+                    $q->where('classroom.id', $classroom->id);
+                });
+            } else {
+                // Jika guru ini tidak punya kelas, pastikan dia tidak melihat apa-apa
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $requests = $query->paginate(15);
             
         return view('leave_requests.index', compact('requests'));
     }
