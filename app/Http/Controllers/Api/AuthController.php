@@ -27,7 +27,7 @@ class AuthController extends Controller
             $result = $this->authService->login($validated);
             
             return $this->successResponse([
-                'user' => $result['user'],
+                'user' => $this->formatUser($result['user']),
                 'token' => $result['token'],
             ], 'Login berhasil');
             
@@ -47,6 +47,23 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return $this->successResponse($request->user(), 'Data user aktif berhasil diambil');
+        return $this->successResponse($this->formatUser($request->user()), 'Data user aktif berhasil diambil');
+    }
+    
+    private function formatUser($user)
+    {
+        $user->load('student.classrooms');
+        
+        $data = $user->toArray();
+        $data['classroom_name'] = null;
+        
+        if ($user->role === 'student' && $user->student) {
+            $activeClassroom = $user->student->classrooms->first();
+            if ($activeClassroom) {
+                $data['classroom_name'] = $activeClassroom->name;
+            }
+        }
+        
+        return $data;
     }
 }

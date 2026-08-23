@@ -19,6 +19,7 @@ Route::prefix('v1')->group(function () {
         
         // Mobile App Endpoints
         Route::prefix('mobile')->group(function () {
+            Route::get('/attendance/today', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'today']);
             Route::get('/attendance/history', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'history']);
             Route::post('/fcm-token', [\App\Http\Controllers\Api\Mobile\AttendanceController::class, 'updateFcmToken']);
         });

@@ -24,12 +24,23 @@ class Student extends Model
         'phone',
         'parent_name',
         'parent_phone',
+        'photo',
         'status',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
     ];
+
+    protected $appends = ['photo_url'];
+
+    public function getPhotoUrlAttribute()
+    {
+        if ($this->photo) {
+            return asset('storage/' . $this->photo);
+        }
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=random';
+    }
 
     public function user()
     {

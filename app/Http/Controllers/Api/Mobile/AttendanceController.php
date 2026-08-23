@@ -29,9 +29,51 @@ class AttendanceController extends Controller
         $history = Attendance::where('student_id', $user->student->id)
             ->orderBy('date', 'desc')
             ->limit($limit)
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'date' => \Carbon\Carbon::parse($item->date)->translatedFormat('l, d F Y'),
+                    'raw_date' => $item->date,
+                    'time_in' => $item->time_in,
+                    'time_out' => $item->time_out,
+                    'status' => $item->status,
+                    'late_minutes' => $item->late_minutes,
+                ];
+            });
 
         return $this->successResponse($history, 'Riwayat presensi berhasil diambil.');
+    }
+
+    /**
+     * Dapatkan status presensi hari ini.
+     */
+    public function today(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'student' || !$user->student) {
+            return $this->errorResponse('Akses ditolak.', 403);
+        }
+
+        $today = \Carbon\Carbon::now()->format('Y-m-d');
+        $attendance = Attendance::where('student_id', $user->student->id)
+            ->whereDate('date', $today)
+            ->first();
+
+        $data = null;
+        if ($attendance) {
+            $data = [
+                'id' => $attendance->id,
+                'date' => \Carbon\Carbon::parse($attendance->date)->translatedFormat('l, d F Y'),
+                'time_in' => $attendance->time_in,
+                'time_out' => $attendance->time_out,
+                'status' => $attendance->status,
+                'late_minutes' => $attendance->late_minutes,
+            ];
+        }
+
+        return $this->successResponse($data, 'Status presensi hari ini.');
     }
 
     /**
