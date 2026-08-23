@@ -94,6 +94,7 @@ class AttendanceServiceTest extends TestCase
         ]);
 
         // 1. Uji Tap Masuk Terlambat (Jam 07:15)
+        Carbon::setTestNow(Carbon::parse("{$date} 07:15:05"));
         $rawBodyIn = "1001 {$date} 07:15:00 0 1";
         $this->attendanceService->processAdmsPush('SN123', $rawBodyIn);
 
@@ -108,6 +109,7 @@ class AttendanceServiceTest extends TestCase
         Queue::assertPushed(SendWaNotificationJob::class);
 
         // 2. Uji Tap Keluar (Jam 15:00)
+        Carbon::setTestNow(Carbon::parse("{$date} 15:00:05"));
         $rawBodyOut = "1001 {$date} 15:00:00 1 1";
         $this->attendanceService->processAdmsPush('SN123', $rawBodyOut);
 

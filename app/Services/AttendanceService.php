@@ -134,7 +134,11 @@ class AttendanceService
             }
             
             // Dispatch Fonnte Notification Job
-            if (!empty($student->parent_phone)) {
+            $eventDateTime = Carbon::parse($date . ' ' . $time);
+            $now = Carbon::now();
+            $isTooLate = abs($now->diffInMinutes($eventDateTime)) > 120; // 2 jam toleransi
+            
+            if (!empty($student->parent_phone) && !$isTooLate) {
                 $statusText = $attendance->status === 'hadir' ? 'Tepat Waktu' : strtoupper($attendance->status);
                 $jenisAbsen = $attendance->time_out ? 'Pulang' : 'Datang';
                 $jamAbsen = $attendance->time_out ? $attendance->time_out : $attendance->time_in;
