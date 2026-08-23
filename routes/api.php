@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\AuthController;
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
 
+    // ADMS Webhook Endpoint (Tidak menggunakan Bearer token, auth berbasis SN)
+    Route::match(['get', 'post'], '/attendance/push', [\App\Http\Controllers\Api\AttendanceController::class, 'push']);
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
