@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Prevent direct access to sensitive files and folders
+    RewriteRule ^(\.env|composer\.(json|lock)|package\.(json|lock)|webpack\.mix\.js|artisan|server\.php) - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|resources|storage|tests|vendor)(/.*)?$ - [F,L,NC]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Handle Front Controller (Forward to public folder)...
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L,QSA]
+</IfModule>
